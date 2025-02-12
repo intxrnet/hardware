@@ -1,49 +1,41 @@
 import CenterCloud from "./components/center-cloud";
+import * as fs from "fs";
+import * as path from "path";
+import { ContentData } from "./types/content";
 
-export default function Home() {
+async function getContent(): Promise<ContentData> {
+  const contentPath = path.join(
+    process.cwd(),
+    "src",
+    "app",
+    "components",
+    "content.json"
+  );
+
+  try {
+    const rawContent = fs.readFileSync(contentPath, "utf-8");
+    return JSON.parse(rawContent) as ContentData;
+  } catch (error) {
+    console.error("Error reading content:", error);
+    // Fallback content if file read fails
+    return {
+      items: [
+        {
+          text: "Error loading content",
+          description: "Please check content.json",
+        },
+      ],
+    };
+  }
+}
+
+export default async function Home() {
+  const content = await getContent();
+
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen">
+    <div className="flex flex-col items-center justify-start">
       <div className="h-[4vh]"></div>
-      <CenterCloud
-        items={[
-          {
-            text: "display gamuts",
-            description: "compare monitor color spaces",
-          },
-          {
-            text: "screen stats",
-            description: "measure screen dimensions",
-          },
-          {
-            text: "browser data",
-            description: "check browser leak",
-          },
-          {
-            text: "keyboard",
-            description: "check key rollover",
-          },
-          {
-            text: "mouse",
-            description: "test mouse accuracy and calibration",
-          },
-          {
-            text: "speaker",
-            description: "check audio quality",
-          },
-          {
-            text: "webcam",
-            description: "check video quality",
-          },
-          {
-            text: "ram test",
-            description: "simulate memory stress locally",
-          },
-          {
-            text: "browser sensor data",
-            description: "show accelerometer & gyroscope data",
-          },
-        ]}
-      ></CenterCloud>
+      <CenterCloud items={content.items} />
     </div>
   );
 }
