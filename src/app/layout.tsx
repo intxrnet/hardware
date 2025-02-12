@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import {
@@ -16,6 +16,12 @@ import { Robots } from "next/dist/lib/metadata/types/metadata-types";
 const ibmPlex = IBM_Plex_Sans({
   subsets: ["latin"],
   variable: "--font-ibm-plex-sans",
+  weight: ["400", "500", "600", "700"],
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-mono",
   weight: ["400", "500", "600", "700"],
 });
 
@@ -98,7 +104,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={ibmPlex.variable}>
+    <html lang="en" className={`${ibmPlex.variable} ${ibmPlexMono.variable}`}>
       <body className="flex flex-col min-h-screen">
         <Header />
         <div className="h-16" aria-hidden="true"></div>
