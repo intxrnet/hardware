@@ -65,7 +65,6 @@ const GamutTest = () => {
           values.blue * 100
         }%)`;
       case "HSV":
-        // HSV converted to HSL for browser compatibility
         return `hsl(${values.red * 360}, ${values.green * 100}%, ${
           values.blue * 50
         }%)`;
@@ -157,27 +156,26 @@ const GamutTest = () => {
   return (
     <div className="flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-5xl">
-        <div className="relative border border-gray-300 p-6 rounded-lg mb-8">
+        <div className="relative border border-gray-300 p-6 rounded-lg">
           <h1 className="absolute -top-3 left-4 bg-white px-2 text-lg font-mono">
             Color Gamuts
           </h1>
 
-          {/* Toggle Buttons */}
           <div className="flex gap-4 mb-4">
             <button
               className={`px-4 py-2 rounded font-mono ${
                 view === "sideBySide"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-blue-100 text-blue-800 border border-blue-300"
                   : "bg-white text-gray-800 border border-gray-200"
               }`}
               onClick={() => setView("sideBySide")}
             >
-              Triads
+              Grid View
             </button>
             <button
               className={`px-4 py-2 rounded font-mono ${
                 view === "spectrum"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-blue-100 text-blue-800 border border-blue-300"
                   : "bg-white text-gray-800 border border-gray-200"
               }`}
               onClick={() => setView("spectrum")}
@@ -187,39 +185,48 @@ const GamutTest = () => {
           </div>
 
           {view === "sideBySide" ? (
-            // Variation 1: Side-by-Side Comparison
-            <div className="flex flex-row gap-4">
-              {/* Names Column */}
-              <div className="w-1/4 space-y-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-[200px_1fr_1fr_1fr] gap-4">
+                {/* Header Row */}
+                <div className="font-mono text-sm text-gray-500"></div>
+                <div className="font-mono text-sm text-center text-gray-500">
+                  Red
+                </div>
+                <div className="font-mono text-sm text-center text-gray-500">
+                  Green
+                </div>
+                <div className="font-mono text-sm text-center text-gray-500">
+                  Blue
+                </div>
+
+                {/* Color Space Rows */}
                 {colorSpaces.map((space, index) => (
-                  <div key={index} className="group relative">
-                    <p className="font-mono text-sm whitespace-nowrap">
-                      {space.name}
-                    </p>
-                    <div className="hidden group-hover:block absolute top-full mt-2 left-0 p-2 bg-white border border-gray-200 rounded shadow-lg z-10">
-                      <p className="font-mono text-sm">{space.description}</p>
+                  <React.Fragment key={index}>
+                    <div className="group relative">
+                      <p className="font-mono text-sm whitespace-nowrap">
+                        {space.name}
+                      </p>
+                      <div className="hidden group-hover:block absolute top-0 left-full ml-2 p-2 bg-white border border-gray-200 rounded shadow-lg z-10">
+                        <p className="font-mono text-sm">{space.description}</p>
+                      </div>
                     </div>
-                  </div>
+                    {["red", "green", "blue"].map((color) => (
+                      <div
+                        key={color}
+                        className="h-8 rounded-lg"
+                        style={{
+                          backgroundColor: generateColorValue(
+                            space.name,
+                            color
+                          ),
+                        }}
+                      />
+                    ))}
+                  </React.Fragment>
                 ))}
               </div>
-
-              {/* Color Columns for Red, Green, Blue */}
-              {["red", "green", "blue"].map((color) => (
-                <div key={color} className="w-1/4 space-y-6">
-                  {colorSpaces.map((space, index) => (
-                    <div
-                      key={index}
-                      className="h-16 rounded-lg"
-                      style={{
-                        backgroundColor: generateColorValue(space.name, color),
-                      }}
-                    />
-                  ))}
-                </div>
-              ))}
             </div>
           ) : (
-            // Variation 2: Spectrum View with Triangle Markers
             <div className="space-y-8">
               {colorSpaces.map((space, index) => {
                 const gradient =
