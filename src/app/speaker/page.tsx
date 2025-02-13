@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 
+interface AudioContextWindow extends Window {
+  webkitAudioContext: typeof AudioContext;
+}
+
 const SpeakerTest = () => {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
@@ -19,7 +23,7 @@ const SpeakerTest = () => {
 
   useEffect(() => {
     const ctx = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+      (window as unknown as AudioContextWindow).webkitAudioContext)();
     setAudioContext(ctx);
     return () => {
       ctx.close();
