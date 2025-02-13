@@ -385,8 +385,20 @@ const BrowserDataInspector = () => {
         ? { deviceMemory: (navigator as any).deviceMemory + " GB" }
         : "Not Available";
 
+      const getBrowserInfo = (ua: string): string => {
+        if (ua.includes("Chrome/"))
+          return `Chrome ${ua.split("Chrome/")[1].split(" ")[0]}`;
+        if (ua.includes("Firefox/"))
+          return `Firefox ${ua.split("Firefox/")[1].split(" ")[0]}`;
+        if (ua.includes("Safari/") && !ua.includes("Chrome/"))
+          return `Safari ${ua.split("Version/")[1].split(" ")[0]}`;
+        if (ua.includes("Edge/"))
+          return `Edge ${ua.split("Edge/")[1].split(" ")[0]}`;
+        return "Unknown Browser";
+      };
+
       const browserInformation = {
-        "User Agent": navigator.userAgent,
+        "User Agent": getBrowserInfo(navigator.userAgent),
         "Browser Language": navigator.language,
         Languages: navigator.languages.join(", "),
         "Cookies Enabled": String(navigator.cookieEnabled),
@@ -537,7 +549,10 @@ const BrowserDataInspector = () => {
       icon: <Network className="w-5 h-5" />,
       data: {
         "Public IP": data.network?.["Public IP"] || "Loading...",
-        "WebRTC IPs": webRTCIPs.join(", ") || "None detected",
+        "WebRTC IPs":
+          webRTCIPs.length > 0
+            ? webRTCIPs.map((ip, i) => `IP ${i + 1}: ${ip}`).join(" | ")
+            : "None detected",
         "Connection Type": data.network?.["Connection Type"] || "Not Available",
         "Download Speed": data.network?.["Download Speed"] || "Unknown",
         Latency: data.network?.["Latency"] || "Unknown",
