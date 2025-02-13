@@ -107,6 +107,39 @@ interface BrowserDataType {
   permissionsSecurity?: Record<string, string>;
 }
 
+interface PerformanceExtended extends Performance {
+  memory: {
+    jsHeapSizeLimit: number;
+    totalJSHeapSize: number;
+    usedJSHeapSize: number;
+  };
+}
+
+interface MediaCapabilitiesInfo {
+  supported: boolean;
+}
+
+interface NavigatorMediaCapabilities {
+  mediaCapabilities: {
+    decodingInfo(config: {
+      type: string;
+      video?: {
+        contentType: string;
+        width: number;
+        height: number;
+        bitrate: number;
+        framerate: number;
+      };
+      audio?: {
+        contentType: string;
+        channels: number;
+        bitrate: number;
+        samplerate: number;
+      };
+    }): Promise<MediaCapabilitiesInfo>;
+  };
+}
+
 const BrowserDataInspector = () => {
   const [data, setData] = useState<BrowserDataType>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -251,7 +284,7 @@ const BrowserDataInspector = () => {
                 (gl as WebGLRenderingContext).VERSION
               ),
             };
-          } catch (e) {
+          } catch {
             return "Not Available";
           }
         };
@@ -364,22 +397,20 @@ const BrowserDataInspector = () => {
             }
           : "Not Available";
 
-      const performanceData = (performance as any).memory
-        ? {
-            jsHeapSizeLimit:
-              ((performance as any).memory.jsHeapSizeLimit / 1048576).toFixed(
-                2
-              ) + " MB",
-            totalJSHeapSize:
-              ((performance as any).memory.totalJSHeapSize / 1048576).toFixed(
-                2
-              ) + " MB",
-            usedJSHeapSize:
-              ((performance as any).memory.usedJSHeapSize / 1048576).toFixed(
-                2
-              ) + " MB",
-          }
-        : "Not Available";
+      const performanceData =
+        "memory" in performance
+          ? {
+              jsHeapSizeLimit:
+                (performance as PerformanceExtended).memory.jsHeapSizeLimit /
+                1048576,
+              totalJSHeapSize:
+                (performance as PerformanceExtended).memory.totalJSHeapSize /
+                1048576,
+              usedJSHeapSize:
+                (performance as PerformanceExtended).memory.usedJSHeapSize /
+                1048576,
+            }
+          : "Not Available";
 
       const memoryData = (navigator as any).deviceMemory
         ? { deviceMemory: (navigator as any).deviceMemory + " GB" }
