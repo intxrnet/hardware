@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Cpu,
   Globe,
-  Network,
   Radio,
   Share2,
   Laptop,
