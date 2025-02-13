@@ -14,23 +14,109 @@ import {
   Eye,
 } from "lucide-react";
 
-const BrowserData = () => {
-  const [data, setData] = useState<any>({});
+interface WebGLInfo {
+  vendor: string;
+  renderer: string;
+  version: string;
+}
+
+interface BrowserDataType {
+  network?: {
+    online: boolean;
+    connection?:
+      | {
+          type: string;
+          downlink?: number | string;
+          rtt?: number | string;
+          saveData?: boolean;
+        }
+      | string;
+  };
+  fingerprint?: {
+    canvas: string;
+    webGL: WebGLInfo | string;
+    audio: boolean;
+  };
+  system?: {
+    platform: string;
+    cores: number;
+    memory?: number | string;
+    maxTouch: number;
+    plugins: Array<{
+      name: string;
+      description: string;
+    }>;
+  };
+  storage?: {
+    localStorage: boolean;
+    sessionStorage: boolean;
+    indexedDB: boolean;
+    cookiesEnabled: boolean;
+    quota: string;
+  };
+  media?:
+    | {
+        videoFormats: string;
+        audioFormats: string;
+        mimeTypes: Array<{
+          type: string;
+          description: string;
+        }>;
+      }
+    | Record<string, string>;
+  features?: {
+    webGL2: boolean;
+    webVR: boolean;
+    webXR: boolean;
+    bluetooth: boolean;
+    usb: boolean;
+  };
+  extensions?: {
+    adBlocker: boolean | string;
+    passwordManager: string;
+  };
+  browserInformation?: Record<string, string>;
+  systemCapabilities?: Record<string, string>;
+  screen?: {
+    width: number;
+    height: number;
+    colorDepth: number;
+    pixelDepth: number;
+    availWidth: number;
+    availHeight: number;
+    orientation?: string;
+    scaling: number;
+  };
+  performance?:
+    | {
+        jsHeapSizeLimit: string;
+        totalJSHeapSize: string;
+        usedJSHeapSize: string;
+      }
+    | string;
+  memory?:
+    | {
+        deviceMemory: string;
+      }
+    | string;
+  permissionsSecurity?: Record<string, string>;
+}
+
+const BrowserDataInspector = () => {
+  const [data, setData] = useState<BrowserDataType>({});
   const [isLoading, setIsLoading] = useState(true);
   const [webRTCIPs, setWebRTCIPs] = useState<string[]>([]);
 
   useEffect(() => {
     const gatherData = async () => {
       setIsLoading(true);
-      let ipData: any = null;
-      let firstData: any = {};
+      let ipData: { ip?: string } = {};
+      let firstData: Partial<BrowserDataType> = {};
 
-      // ─── FIRST BLOCK DATA (Advanced Browser & Fingerprint Data) ───────────────────────────────
       try {
         // Get public IP
         const ipResponse = await fetch("https://api.ipify.org?format=json");
-        const ipDataResult = await ipResponse.json();
-        ipData = ipDataResult;
+        ipData = await ipResponse.json();
 
         // WebRTC IP detection
         const pc = new RTCPeerConnection();
@@ -40,7 +126,7 @@ const BrowserData = () => {
         pc.onicecandidate = (ice) => {
           if (ice.candidate) {
             const matches = ice.candidate.candidate.match(
-              /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/g
+              /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9:]+)/g
             );
             if (matches) {
               setWebRTCIPs((prev) =>
@@ -65,7 +151,7 @@ const BrowserData = () => {
                 const formats = ["H264", "VP8", "VP9", "AV1"];
                 const results = await Promise.all(
                   formats.map(async (format) => {
-                    const supported = await navigator.mediaCapabilities
+                    const info = await (navigator as any).mediaCapabilities
                       .decodingInfo({
                         type: "file",
                         video: {
@@ -77,13 +163,15 @@ const BrowserData = () => {
                         },
                       })
                       .catch(() => ({ supported: false }));
-                    return { format, supported: supported.supported };
+                    return { format, supported: info.supported };
                   })
                 );
-                return results
-                  .filter((r) => r.supported)
-                  .map((r) => r.format)
-                  .join(", ");
+                return (
+                  results
+                    .filter((r) => r.supported)
+                    .map((r) => r.format)
+                    .join(", ") || "Not Available"
+                );
               })()
             : "Not Available";
 
@@ -94,7 +182,7 @@ const BrowserData = () => {
                 const formats = ["AAC", "MP3", "OPUS"];
                 const results = await Promise.all(
                   formats.map(async (format) => {
-                    const supported = await navigator.mediaCapabilities
+                    const info = await (navigator as any).mediaCapabilities
                       .decodingInfo({
                         type: "file",
                         audio: {
@@ -105,24 +193,26 @@ const BrowserData = () => {
                         },
                       })
                       .catch(() => ({ supported: false }));
-                    return { format, supported: supported.supported };
+                    return { format, supported: info.supported };
                   })
                 );
-                return results
-                  .filter((r) => r.supported)
-                  .map((r) => r.format)
-                  .join(", ");
+                return (
+                  results
+                    .filter((r) => r.supported)
+                    .map((r) => r.format)
+                    .join(", ") || "Not Available"
+                );
               })()
             : "Not Available";
 
         // Canvas fingerprint
-        const getCanvasFingerprint = () => {
+        const getCanvasFingerprint = (): string => {
           try {
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
             if (!ctx) return "Not Available";
             ctx.textBaseline = "top";
-            ctx.font = "14px 'Arial'";
+            ctx.font = "14px Arial";
             ctx.textBaseline = "alphabetic";
             ctx.fillStyle = "#f60";
             ctx.fillRect(125, 1, 62, 20);
@@ -138,7 +228,7 @@ const BrowserData = () => {
         const canvasFingerprint = getCanvasFingerprint();
 
         // WebGL info
-        const getWebGLInfo = () => {
+        const getWebGLInfo = (): WebGLInfo | string => {
           try {
             const canvas = document.createElement("canvas");
             const gl =
@@ -146,9 +236,15 @@ const BrowserData = () => {
               canvas.getContext("experimental-webgl");
             if (!gl) return "Not Available";
             return {
-              vendor: gl.getParameter(gl.VENDOR),
-              renderer: gl.getParameter(gl.RENDERER),
-              version: gl.getParameter(gl.VERSION),
+              vendor: (gl as WebGLRenderingContext).getParameter(
+                (gl as WebGLRenderingContext).VENDOR
+              ),
+              renderer: (gl as WebGLRenderingContext).getParameter(
+                (gl as WebGLRenderingContext).RENDERER
+              ),
+              version: (gl as WebGLRenderingContext).getParameter(
+                (gl as WebGLRenderingContext).VERSION
+              ),
             };
           } catch (e) {
             return "Not Available";
@@ -157,7 +253,7 @@ const BrowserData = () => {
         const webGLInfo = getWebGLInfo();
 
         // Ad Blocker detection
-        const checkForAdBlocker = () => {
+        const checkForAdBlocker = (): boolean | string => {
           try {
             const testAd = document.createElement("div");
             testAd.innerHTML = "&nbsp;";
@@ -172,13 +268,11 @@ const BrowserData = () => {
         };
         const adBlockerDetected = checkForAdBlocker();
 
-        // Password Manager detection
-        const detectPasswordManager = () => {
-          const hasAutofill =
-            document.querySelector('input[autocomplete="current-password"]') !==
-            null;
-          return hasAutofill ? "Detected" : "Not Detected";
-        };
+        // Password Manager detection (basic check)
+        const detectPasswordManager = (): string =>
+          document.querySelector('input[autocomplete="current-password"]')
+            ? "Detected"
+            : "Not Detected";
         const passwordManagerStatus = detectPasswordManager();
 
         firstData = {
@@ -187,11 +281,12 @@ const BrowserData = () => {
             connection:
               "connection" in navigator
                 ? {
-                    type:
-                      (navigator as any).connection?.effectiveType || "unknown",
-                    downlink: (navigator as any).connection?.downlink,
-                    rtt: (navigator as any).connection?.rtt,
-                    saveData: (navigator as any).connection?.saveData,
+                    type: (navigator as any).connection?.type || "unknown",
+                    downlink:
+                      (navigator as any).connection?.downlink ||
+                      "Not Available",
+                    rtt: (navigator as any).connection?.rtt || "Not Available",
+                    saveData: (navigator as any).connection?.saveData || false,
                   }
                 : "Not Available",
           },
@@ -203,7 +298,7 @@ const BrowserData = () => {
           system: {
             platform: navigator.platform,
             cores: navigator.hardwareConcurrency,
-            memory: (navigator as any).deviceMemory,
+            memory: (navigator as any).deviceMemory || "Not Available",
             maxTouch: navigator.maxTouchPoints,
             plugins: Array.from(navigator.plugins).map((p) => ({
               name: p.name,
@@ -211,9 +306,9 @@ const BrowserData = () => {
             })),
           },
           storage: {
-            localStorage: "localStorage" in window,
-            sessionStorage: "sessionStorage" in window,
-            indexedDB: "indexedDB" in window,
+            localStorage: typeof localStorage !== "undefined",
+            sessionStorage: typeof sessionStorage !== "undefined",
+            indexedDB: typeof indexedDB !== "undefined",
             cookiesEnabled: navigator.cookieEnabled,
             quota: quotaData,
           },
@@ -238,10 +333,10 @@ const BrowserData = () => {
           },
         };
       } catch (error) {
-        console.error("Error gathering first block data:", error);
+        console.error("Error gathering data", error);
       }
 
-      // ─── SECOND BLOCK DATA (Screen, Connection, Performance, etc.) ─────────────────────────────
+      // Second block data
       const screenData = {
         width: window.screen.width,
         height: window.screen.height,
@@ -252,15 +347,18 @@ const BrowserData = () => {
         orientation: window.screen.orientation?.type || "Not Available",
         scaling: window.devicePixelRatio,
       };
+
       const connectionData =
         "connection" in navigator
           ? {
               type: (navigator as any).connection?.effectiveType || "unknown",
-              downlink: (navigator as any).connection?.downlink,
-              rtt: (navigator as any).connection?.rtt,
-              saveData: (navigator as any).connection?.saveData,
+              downlink:
+                (navigator as any).connection?.downlink || "Not Available",
+              rtt: (navigator as any).connection?.rtt || "Not Available",
+              saveData: (navigator as any).connection?.saveData || false,
             }
           : "Not Available";
+
       const performanceData = (performance as any).memory
         ? {
             jsHeapSizeLimit:
@@ -277,6 +375,7 @@ const BrowserData = () => {
               ) + " MB",
           }
         : "Not Available";
+
       const memoryData = (navigator as any).deviceMemory
         ? { deviceMemory: (navigator as any).deviceMemory + " GB" }
         : "Not Available";
@@ -285,7 +384,7 @@ const BrowserData = () => {
         "User Agent": navigator.userAgent,
         "Browser Language": navigator.language,
         Languages: navigator.languages.join(", "),
-        "Cookies Enabled": navigator.cookieEnabled,
+        "Cookies Enabled": String(navigator.cookieEnabled),
         "Do Not Track": navigator.doNotTrack,
         Platform: navigator.platform,
         Vendor: navigator.vendor,
@@ -294,8 +393,8 @@ const BrowserData = () => {
       };
 
       const systemCapabilities = {
-        "Max Touch Points": navigator.maxTouchPoints,
-        "Hardware Concurrency": navigator.hardwareConcurrency,
+        "Max Touch Points": String(navigator.maxTouchPoints),
+        "Hardware Concurrency": String(navigator.hardwareConcurrency),
         "Device Memory": (navigator as any).deviceMemory
           ? `${(navigator as any).deviceMemory} GB`
           : "Not Available",
@@ -303,7 +402,7 @@ const BrowserData = () => {
           ? "Yes"
           : "No",
         "Java Enabled": (navigator as any).javaEnabled
-          ? (navigator as any).javaEnabled()
+          ? String((navigator as any).javaEnabled())
           : "Not Available",
       };
 
@@ -329,33 +428,38 @@ const BrowserData = () => {
           "speechSynthesis" in window ? "Supported" : "Not Supported",
         WebGL:
           "WebGLRenderingContext" in window ? "Supported" : "Not Supported",
-        "Video Formats": firstData.media?.videoFormats || "Not Available",
-        "Audio Formats": firstData.media?.audioFormats || "Not Available",
+        "Video Formats":
+          (firstData.media as any)?.videoFormats || "Not Available",
+        "Audio Formats":
+          (firstData.media as any)?.audioFormats || "Not Available",
       };
 
-      // Use the connection info from the second block for network details
       const combinedNetwork = {
         "Public IP": ipData?.ip || "Loading...",
         "Connection Type":
-          connectionData && "type" in connectionData
+          connectionData && typeof connectionData !== "string"
             ? connectionData.type
-            : firstData.network?.connection?.type || "Not Available",
+            : "Not Available",
         "Download Speed":
-          connectionData && "downlink" in connectionData
+          connectionData && typeof connectionData !== "string"
             ? `${connectionData.downlink} Mbps`
             : "Unknown",
-        Latency: connectionData?.rtt ? `${connectionData.rtt} ms` : "Unknown",
-        "Online Status": firstData.network?.online ? "Online" : "Offline",
+        Latency:
+          connectionData && typeof connectionData !== "string"
+            ? `${connectionData.rtt} ms`
+            : "Unknown",
+        "Online Status": (firstData.network as any)?.online
+          ? "Online"
+          : "Offline",
       };
 
-      // ─── COMBINED DATA OBJECT ──────────────────────────────────────────────
-      const combinedData = {
+      const combinedData: BrowserDataType = {
         browserInformation,
         systemCapabilities,
         screen: screenData,
         network: combinedNetwork,
-        performance: performanceData,
-        memory: memoryData,
+        performance: performanceData as any,
+        memory: memoryData as any,
         fingerprint: firstData.fingerprint,
         storage: firstData.storage,
         media: mediaCapabilities,
@@ -371,9 +475,8 @@ const BrowserData = () => {
 
     gatherData();
 
-    // Update screen data on window resize
     const gatherScreenData = () => {
-      setData((prev: any) => ({
+      setData((prev) => ({
         ...prev,
         screen: {
           width: window.screen.width,
@@ -392,7 +495,7 @@ const BrowserData = () => {
     return () => window.removeEventListener("resize", gatherScreenData);
   }, []);
 
-  // ─── DEFINE SECTIONS TO DISPLAY ──────────────────────────────────────────────
+  // Define sections for display
   const sections = [
     {
       title: "Browser Information",
@@ -441,12 +544,20 @@ const BrowserData = () => {
       icon: <Cpu className="w-5 h-5" />,
       data: {
         "JS Heap Size Limit":
-          data.performance?.jsHeapSizeLimit || "Not Available",
+          (typeof data.performance === "object" &&
+            data.performance?.jsHeapSizeLimit) ||
+          "Not Available",
         "Total JS Heap Size":
-          data.performance?.totalJSHeapSize || "Not Available",
+          (typeof data.performance === "object" &&
+            data.performance?.totalJSHeapSize) ||
+          "Not Available",
         "Used JS Heap Size":
-          data.performance?.usedJSHeapSize || "Not Available",
-        "Device Memory": data.memory?.deviceMemory || "Not Available",
+          (typeof data.performance === "object" &&
+            data.performance?.usedJSHeapSize) ||
+          "Not Available",
+        "Device Memory":
+          (typeof data.memory === "object" && data.memory?.deviceMemory) ||
+          "Not Available",
       },
     },
     {
@@ -464,8 +575,14 @@ const BrowserData = () => {
       icon: <Eye className="w-5 h-5" />,
       data: {
         "Canvas Hash": data.fingerprint?.canvas || "Not Available",
-        "WebGL Vendor": data.fingerprint?.webGL?.vendor || "Not Available",
-        "WebGL Renderer": data.fingerprint?.webGL?.renderer || "Not Available",
+        "WebGL Vendor":
+          typeof data.fingerprint?.webGL === "object"
+            ? data.fingerprint?.webGL.vendor
+            : "Not Available",
+        "WebGL Renderer":
+          typeof data.fingerprint?.webGL === "object"
+            ? data.fingerprint?.webGL.renderer
+            : "Not Available",
         "Audio Context": data.fingerprint?.audio
           ? "Available"
           : "Not Available",
@@ -496,7 +613,7 @@ const BrowserData = () => {
           data.extensions?.adBlocker === true ? "Detected" : "Not Detected",
         "Password Manager": data.extensions?.passwordManager,
         Plugins: data.system?.plugins
-          ? data.system.plugins.map((p: any) => p.name).join(", ")
+          ? data.system.plugins.map((p) => p.name).join(", ")
           : "None",
       },
     },
@@ -562,4 +679,4 @@ const BrowserData = () => {
   );
 };
 
-export default BrowserData;
+export default BrowserDataInspector;
