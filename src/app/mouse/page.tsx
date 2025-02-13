@@ -17,6 +17,7 @@ export default function MouseTestPage() {
   });
   const [wheelDelta, setWheelDelta] = useState({ deltaX: 0, deltaY: 0 });
   const [doubleClickCount, setDoubleClickCount] = useState(0);
+  const [screenPosition, setScreenPosition] = useState({ x: 0, y: 0 });
 
   const handleMouseClick = useCallback(
     (e: React.MouseEvent) => {
@@ -83,15 +84,23 @@ export default function MouseTestPage() {
   }, []);
 
   useEffect(() => {
+    // Update screen position only in browser environment
+    if (typeof window !== "undefined") {
+      setScreenPosition({
+        x: Math.round(window.screenX),
+        y: Math.round(window.screenY),
+      });
+    }
+
     const handleGlobalMouseMove = (e: MouseEvent) => {
       setLastEvent(`Global MouseMove (${e.clientX}, ${e.clientY})`);
     };
 
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-
-    return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("mousemove", handleGlobalMouseMove);
+      return () =>
+        window.removeEventListener("mousemove", handleGlobalMouseMove);
+    }
   }, []);
 
   return (
@@ -142,8 +151,7 @@ export default function MouseTestPage() {
             Relative: X: {mousePosition.x} | Y: {mousePosition.y}
           </p>
           <p>
-            Screen: X: {Math.round(window?.screenX || 0)} | Y:{" "}
-            {Math.round(window?.screenY || 0)}
+            Screen: X: {screenPosition.x} | Y: {screenPosition.y}
           </p>
         </div>
       </div>
