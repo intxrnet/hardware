@@ -11,12 +11,22 @@ const WebcamDiagnostics = () => {
   const [capabilities, setCapabilities] =
     useState<MediaTrackCapabilities | null>(null);
   const [settings, setSettings] = useState<MediaTrackSettings | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const listCameras = useCallback(async () => {
     try {
+      // First request camera permission
+      await navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          // Immediately stop the stream after getting permission
+          stream.getTracks().forEach((track) => track.stop());
+        });
+
+      // Now enumerate devices (this will show labels after permission is granted)
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(
         (device) => device.kind === "videoinput"
@@ -30,9 +40,23 @@ const WebcamDiagnostics = () => {
     }
   }, [activeDevice]);
 
-  React.useEffect(() => {
-    listCameras();
+  const requestPermission = useCallback(async () => {
+    try {
+      const result = await navigator.mediaDevices.getUserMedia({ video: true });
+      result.getTracks().forEach((track) => track.stop()); // Stop the test stream
+      setHasPermission(true);
+      await listCameras();
+    } catch {
+      setHasPermission(false);
+      setError("Camera permission denied");
+    }
   }, [listCameras]);
+
+  React.useEffect(() => {
+    if (hasPermission) {
+      listCameras();
+    }
+  }, [hasPermission, listCameras]);
 
   const startStream = async () => {
     try {
@@ -93,6 +117,49 @@ const WebcamDiagnostics = () => {
       link.click();
     }
   };
+
+  if (hasPermission === null) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="w-full max-w-4xl">
+          <div className="relative border border-gray-300 p-6 rounded-lg text-center">
+            <h1 className="absolute -top-3 left-4 bg-white px-2 text-lg font-mono">
+              Camera Permission Required
+            </h1>
+            <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className="mb-4 text-gray-600">
+              This diagnostic tool needs access to your camera to function.
+            </p>
+            <button
+              onClick={requestPermission}
+              className="font-mono text-sm px-6 py-2 rounded-md transition-colors
+                bg-blue-50 hover:bg-blue-100 border border-blue-200"
+            >
+              Allow Camera Access
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="w-full max-w-4xl">
+          <div className="relative border border-gray-300 p-6 rounded-lg text-center">
+            <h1 className="absolute -top-3 left-4 bg-white px-2 text-lg font-mono">
+              Permission Denied
+            </h1>
+            <p className="text-red-600">
+              Camera access was denied. Please allow camera access in your
+              browser settings to use this tool.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center p-8">
