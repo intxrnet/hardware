@@ -24,13 +24,18 @@ interface BrowserDataType {
   network?: {
     online: boolean;
     connection?:
+      | string
       | {
           type: string;
-          downlink?: number | string;
-          rtt?: number | string;
+          downlink?: string | number;
+          rtt?: string | number;
           saveData?: boolean;
-        }
-      | string;
+        };
+    "Public IP"?: string;
+    "Connection Type"?: string;
+    "Download Speed"?: string;
+    Latency?: string;
+    "Online Status"?: string;
   };
   fingerprint?: {
     canvas: string;
@@ -439,7 +444,7 @@ const BrowserDataInspector = () => {
         "Connection Type":
           connectionData && typeof connectionData !== "string"
             ? connectionData.type
-            : "Not Available",
+            : "Unknown",
         "Download Speed":
           connectionData && typeof connectionData !== "string"
             ? `${connectionData.downlink} Mbps`
