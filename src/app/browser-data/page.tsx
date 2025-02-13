@@ -21,7 +21,7 @@ interface WebGLInfo {
 }
 
 interface BrowserDataType {
-  network?: {
+  network?: Partial<{
     online: boolean;
     connection?:
       | string
@@ -31,12 +31,12 @@ interface BrowserDataType {
           rtt?: string | number;
           saveData?: boolean;
         };
-    "Public IP"?: string;
-    "Connection Type"?: string;
-    "Download Speed"?: string;
-    Latency?: string;
-    "Online Status"?: string;
-  };
+    "Public IP": string;
+    "Connection Type": string;
+    "Download Speed": string;
+    Latency: string;
+    "Online Status": string;
+  }>;
   fingerprint?: {
     canvas: string;
     webGL: WebGLInfo | string;
@@ -390,7 +390,7 @@ const BrowserDataInspector = () => {
         "Browser Language": navigator.language,
         Languages: navigator.languages.join(", "),
         "Cookies Enabled": String(navigator.cookieEnabled),
-        "Do Not Track": navigator.doNotTrack,
+        "Do Not Track": navigator.doNotTrack || "Not Set",
         Platform: navigator.platform,
         Vendor: navigator.vendor,
         Product: navigator.product,
