@@ -3,9 +3,22 @@
 import React, { useState, useEffect } from "react";
 import { Cpu } from "lucide-react";
 
+interface MemoryStats {
+  jsHeapSizeLimit: number;
+  totalJSHeapSize: number;
+  usedJSHeapSize: number;
+}
+
+interface PerformanceMemory extends Performance {
+  memory: MemoryStats;
+}
+
+interface NavigatorMemory extends Navigator {
+  deviceMemory?: number;
+}
+
 const RAMTest = () => {
-  // State for memory stats (from performance.memory if available)
-  const [memoryStats, setMemoryStats] = useState({
+  const [memoryStats, setMemoryStats] = useState<MemoryStats>({
     jsHeapSizeLimit: 0,
     totalJSHeapSize: 0,
     usedJSHeapSize: 0,
@@ -13,46 +26,41 @@ const RAMTest = () => {
   const [deviceMemory, setDeviceMemory] = useState<number | null>(null);
   const [tabsCount, setTabsCount] = useState<number>(1);
 
-  // Generate a unique ID for this tab
   const [tabId] = useState(
     () => Date.now() + "-" + Math.random().toString(36).substring(2, 15)
   );
 
-  // Update memory stats using performance.memory (Chrome only)
   const updateMemoryStats = () => {
-    if ((performance as any).memory) {
+    if ("memory" in performance) {
       const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = (
-        performance as any
+        performance as PerformanceMemory
       ).memory;
       setMemoryStats({ jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize });
     }
   };
 
-  // Update device memory (if available)
   useEffect(() => {
-    if ((navigator as any).deviceMemory) {
-      setDeviceMemory((navigator as any).deviceMemory);
+    const nav = navigator as NavigatorMemory;
+    if (nav.deviceMemory) {
+      setDeviceMemory(nav.deviceMemory);
     }
   }, []);
 
-  // Update memory stats every second (if available)
   useEffect(() => {
     updateMemoryStats();
     const interval = setInterval(updateMemoryStats, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Use localStorage to track open tabs across the same origin.
   const storageKey = "ramTest_openTabs";
 
-  // Update the open tabs count from localStorage
   const updateTabsCount = () => {
     const tabs = localStorage.getItem(storageKey);
     if (tabs) {
       try {
         const tabsArray: string[] = JSON.parse(tabs);
         setTabsCount(tabsArray.length);
-      } catch (e) {
+      } catch {
         setTabsCount(1);
       }
     } else {
@@ -60,7 +68,6 @@ const RAMTest = () => {
     }
   };
 
-  // On mount, add our tabId into localStorage
   useEffect(() => {
     const addTab = () => {
       const tabs = localStorage.getItem(storageKey);
@@ -68,7 +75,7 @@ const RAMTest = () => {
       if (tabs) {
         try {
           tabsArray = JSON.parse(tabs);
-        } catch (e) {
+        } catch {
           tabsArray = [];
         }
       }
@@ -85,7 +92,7 @@ const RAMTest = () => {
       if (tabs) {
         try {
           tabsArray = JSON.parse(tabs);
-        } catch (e) {
+        } catch {
           tabsArray = [];
         }
       }
@@ -105,13 +112,11 @@ const RAMTest = () => {
     };
   }, [tabId]);
 
-  // Compute tab efficiency as the ratio of used JS heap to the JS heap size limit.
   const tabEfficiency =
     memoryStats.jsHeapSizeLimit > 0
       ? (memoryStats.usedJSHeapSize / memoryStats.jsHeapSizeLimit) * 100
       : 0;
 
-  // Helper to format bytes to MB.
   const formatBytes = (bytes: number) =>
     (bytes / (1024 * 1024)).toFixed(2) + " MB";
 
@@ -127,8 +132,8 @@ const RAMTest = () => {
             <Cpu className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-green-700">
               This test displays approximate memory usage for your current tab,
-              your device’s memory, and how many tabs are open. Note that memory
-              stats (JS heap info) are only available in some browsers.
+              your device&apos;s memory, and how many tabs are open. Note that
+              memory stats (JS heap info) are only available in some browsers.
             </p>
           </div>
 
@@ -146,7 +151,7 @@ const RAMTest = () => {
             <div>
               <dt className="text-gray-600">JS Heap Size Limit</dt>
               <dd className="mt-1 text-gray-900">
-                {(performance as any).memory
+                {"memory" in performance
                   ? formatBytes(memoryStats.jsHeapSizeLimit)
                   : "Not Available"}
               </dd>
@@ -154,7 +159,7 @@ const RAMTest = () => {
             <div>
               <dt className="text-gray-600">Total JS Heap Size</dt>
               <dd className="mt-1 text-gray-900">
-                {(performance as any).memory
+                {"memory" in performance
                   ? formatBytes(memoryStats.totalJSHeapSize)
                   : "Not Available"}
               </dd>
@@ -162,7 +167,7 @@ const RAMTest = () => {
             <div>
               <dt className="text-gray-600">Used JS Heap Size</dt>
               <dd className="mt-1 text-gray-900">
-                {(performance as any).memory
+                {"memory" in performance
                   ? formatBytes(memoryStats.usedJSHeapSize)
                   : "Not Available"}
               </dd>
@@ -170,7 +175,7 @@ const RAMTest = () => {
             <div>
               <dt className="text-gray-600">Tab Efficiency</dt>
               <dd className="mt-1 text-gray-900">
-                {(performance as any).memory
+                {"memory" in performance
                   ? tabEfficiency.toFixed(2) + " %"
                   : "Not Available"}
               </dd>
