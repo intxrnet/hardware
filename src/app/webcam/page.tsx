@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Camera, Pause, Play, RefreshCw } from "lucide-react";
 
 const WebcamDiagnostics = () => {
@@ -15,11 +15,7 @@ const WebcamDiagnostics = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    listCameras();
-  }, []);
-
-  const listCameras = async () => {
+  const listCameras = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(
@@ -29,10 +25,14 @@ const WebcamDiagnostics = () => {
       if (videoDevices.length > 0 && !activeDevice) {
         setActiveDevice(videoDevices[0].deviceId);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to list cameras");
     }
-  };
+  }, [activeDevice]);
+
+  React.useEffect(() => {
+    listCameras();
+  }, [listCameras]);
 
   const startStream = async () => {
     try {
@@ -60,7 +60,7 @@ const WebcamDiagnostics = () => {
       const track = stream.getVideoTracks()[0];
       setCapabilities(track.getCapabilities());
       setSettings(track.getSettings());
-    } catch (err) {
+    } catch {
       setError("Failed to access camera");
       setIsStreaming(false);
     }
